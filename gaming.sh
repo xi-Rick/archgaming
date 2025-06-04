@@ -224,14 +224,14 @@ update_system() {
 
         case "$DISTRO" in
             "manjaro")
-                pacman -Syyu --noconfirm
+                pacman -Syyu 
                 ;;
             "garuda")
-                garuda-update || pacman -Syyu --noconfirm
+                garuda-update || pacman -Syyu 
                 ;;
             *)
                 # Default for Arch and other Arch-based distros
-                pacman -Syu --noconfirm
+                pacman -Syu 
                 ;;
         esac
 
@@ -277,10 +277,10 @@ install_aur_helper() {
 
     # Install yay if no AUR helper is installed
     echo -e "${YELLOW}Installing yay AUR helper...${NC}"
-    pacman -S --needed --noconfirm git base-devel
+    pacman -S --needed  git base-devel
     sudo -u "$REAL_USER" git clone https://aur.archlinux.org/yay.git /tmp/yay
     cd /tmp/yay || exit
-    sudo -u "$REAL_USER" makepkg -si --noconfirm
+    sudo -u "$REAL_USER" makepkg -si 
     cd - || exit
     rm -rf /tmp/yay
     echo -e "${GREEN}yay installed successfully.${NC}"
@@ -299,18 +299,18 @@ install_graphics_drivers() {
             case "$DISTRO" in
                 "manjaro")
                     # Manjaro uses its own driver manager
-                    pacman -S --needed --noconfirm manjaro-settings-manager
+                    pacman -S --needed  manjaro-settings-manager
                     echo -e "${YELLOW}Please use Manjaro Settings Manager > Hardware Configuration to install the proper NVIDIA drivers.${NC}"
                     echo -e "${YELLOW}Alternatively, we can install them now. Continuing with installation...${NC}"
-                    pacman -S --needed --noconfirm nvidia-utils lib32-nvidia-utils nvidia
+                    pacman -S --needed  nvidia-utils lib32-nvidia-utils nvidia
                     ;;
                 "garuda")
                     # Garuda might use their own nvidia installer
-                    pacman -S --needed --noconfirm nvidia-dkms nvidia-utils lib32-nvidia-utils
+                    pacman -S --needed  nvidia-dkms nvidia-utils lib32-nvidia-utils
                     ;;
                 *)
                     # Default for most Arch-based distributions
-                    pacman -S --needed --noconfirm nvidia nvidia-utils lib32-nvidia-utils
+                    pacman -S --needed  nvidia nvidia-utils lib32-nvidia-utils
                     ;;
             esac
 
@@ -325,10 +325,10 @@ install_graphics_drivers() {
 
             case "$DISTRO" in
                 "manjaro")
-                    pacman -S --needed --noconfirm mesa lib32-mesa vulkan-radeon lib32-vulkan-radeon xf86-video-amdgpu
+                    pacman -S --needed  mesa lib32-mesa vulkan-radeon lib32-vulkan-radeon xf86-video-amdgpu
                     ;;
                 *)
-                    pacman -S --needed --noconfirm mesa vulkan-radeon lib32-mesa lib32-vulkan-radeon
+                    pacman -S --needed  mesa vulkan-radeon lib32-mesa lib32-vulkan-radeon
                     ;;
             esac
 
@@ -340,7 +340,7 @@ install_graphics_drivers() {
         echo -e "${YELLOW}Intel GPU detected.${NC}"
         if confirm_action "Would you like to install/update Intel drivers?"; then
             echo -e "${GREEN}Installing Intel drivers...${NC}"
-            pacman -S --needed --noconfirm mesa vulkan-intel lib32-mesa lib32-vulkan-intel intel-media-driver
+            pacman -S --needed  mesa vulkan-intel lib32-mesa lib32-vulkan-intel intel-media-driver
             echo -e "${GREEN}Intel drivers installed.${NC}"
         fi
     fi
@@ -356,32 +356,32 @@ install_gaming_meta_packages() {
     case "$DISTRO" in
         "cachyos")
             if confirm_action "Would you like to install CachyOS gaming meta packages?"; then
-                pacman -S --needed --noconfirm cachyos-gaming-meta cachyos-gaming-applications
+                pacman -S --needed  cachyos-gaming-meta cachyos-gaming-applications
                 echo -e "${GREEN}CachyOS gaming packages installed successfully.${NC}"
             fi
             ;;
         "garuda")
             if confirm_action "Would you like to install Garuda gaming packages?"; then
-                pacman -S --needed --noconfirm garuda-gaming
+                pacman -S --needed  garuda-gaming
                 echo -e "${GREEN}Garuda gaming packages installed successfully.${NC}"
             fi
             ;;
         "manjaro")
             if confirm_action "Would you like to install gaming packages?"; then
-                pacman -S --needed --noconfirm steam lutris wine-staging gamemode lib32-gamemode
+                pacman -S --needed  steam lutris wine-staging gamemode lib32-gamemode
                 echo -e "${GREEN}Gaming packages installed successfully.${NC}"
             fi
             ;;
         "endeavouros")
             if confirm_action "Would you like to install gaming packages?"; then
-                pacman -S --needed --noconfirm steam lutris wine-staging gamemode lib32-gamemode
+                pacman -S --needed  steam lutris wine-staging gamemode lib32-gamemode
                 echo -e "${GREEN}Gaming packages installed successfully.${NC}"
             fi
             ;;
         *)
             # Default for Arch and other derivatives
             if confirm_action "Would you like to install basic gaming packages?"; then
-                pacman -S --needed --noconfirm steam lutris wine-staging gamemode lib32-gamemode
+                pacman -S --needed  steam lutris wine-staging gamemode lib32-gamemode
                 echo -e "${GREEN}Basic gaming packages installed successfully.${NC}"
             fi
             ;;
@@ -413,28 +413,28 @@ install_gaming_platforms() {
 
     # Steam (if not already installed through meta packages)
     if ! pacman -Q steam &> /dev/null; then
-        prompt_installation "Steam" "Install Steam?" "pacman -S --needed --noconfirm steam"
+        prompt_installation "Steam" "Install Steam?" "pacman -S --needed  steam"
     else
         echo -e "${GREEN}Steam is already installed.${NC}"
     fi
 
     # Lutris (if not already installed through meta packages)
     if ! pacman -Q lutris &> /dev/null; then
-        prompt_installation "Lutris" "Install Lutris?" "pacman -S --needed --noconfirm lutris"
+        prompt_installation "Lutris" "Install Lutris?" "pacman -S --needed  lutris"
     else
         echo -e "${GREEN}Lutris is already installed.${NC}"
     fi
 
     # Heroic Games Launcher
-    prompt_installation "Heroic Games Launcher" "Install Heroic Games Launcher (Epic Games & GOG)?" "sudo -u \"$REAL_USER\" yay -S --needed --noconfirm heroic-games-launcher-bin"
+    prompt_installation "Heroic Games Launcher" "Install Heroic Games Launcher (Epic Games & GOG)?" "sudo -u \"$REAL_USER\" yay -S --needed  heroic-games-launcher-bin"
 
     # Steam Tinker Launch block
     if confirm_action "Install Steam Tinker Launch?"; then
         echo -e "${GREEN}Installing Steam Tinker Launch from AUR...${NC}"
-        sudo -u "$REAL_USER" yay -S --needed --noconfirm steamtinkerlaunch-git
+        sudo -u "$REAL_USER" yay -S --needed  steamtinkerlaunch-git
 
         echo -e "${GREEN}Installing Steam Tinker Launch dependencies...${NC}"
-        pacman -S --needed --noconfirm yad zenity xdotool xorg-xwininfo
+        pacman -S --needed  yad zenity xdotool xorg-xwininfo
 
         # Ensure Steam is running and loaded
         echo -e "${GREEN}Ensuring Steam is running...${NC}"
@@ -477,23 +477,23 @@ install_gaming_platforms() {
     # Emulation
     if confirm_action "Would you like to install emulation platforms?"; then
         # RetroArch
-        prompt_installation "RetroArch" "Install RetroArch (Multi-system emulator)?" "pacman -S --needed --noconfirm retroarch retroarch-assets-xmb"
+        prompt_installation "RetroArch" "Install RetroArch (Multi-system emulator)?" "pacman -S --needed  retroarch retroarch-assets-xmb"
 
         # Cemu (Wii U Emulator)
-        prompt_installation "Cemu (Wii U Emulator)" "Install Cemu (Wii U Emulator)?" "sudo -u \"$REAL_USER\" yay -S --needed --noconfirm cemu-bin"
+        prompt_installation "Cemu (Wii U Emulator)" "Install Cemu (Wii U Emulator)?" "sudo -u \"$REAL_USER\" yay -S --needed  cemu-bin"
 
         # Dolphin (GameCube/Wii Emulator)
-        prompt_installation "Dolphin (GameCube/Wii Emulator)" "Install Dolphin (GameCube/Wii Emulator)?" "pacman -S --needed --noconfirm dolphin-emu"
+        prompt_installation "Dolphin (GameCube/Wii Emulator)" "Install Dolphin (GameCube/Wii Emulator)?" "pacman -S --needed  dolphin-emu"
 
         # PCSX2 (PS2 Emulator)
-        prompt_installation "PCSX2 (PS2 Emulator)" "Install PCSX2 (PS2 Emulator)?" "pacman -S --needed --noconfirm pcsx2"
+        prompt_installation "PCSX2 (PS2 Emulator)" "Install PCSX2 (PS2 Emulator)?" "pacman -S --needed  pcsx2"
 
         # RPCS3 (PS3 Emulator)
-        prompt_installation "RPCS3 (PS3 Emulator)" "Install RPCS3 (PS3 Emulator)?" "sudo -u \"$REAL_USER\" yay -S --needed --noconfirm rpcs3-git"
+        prompt_installation "RPCS3 (PS3 Emulator)" "Install RPCS3 (PS3 Emulator)?" "sudo -u \"$REAL_USER\" yay -S --needed  rpcs3-git"
     fi
 
     # ProtonUp-Qt block for Proton GE management
-    prompt_installation "ProtonUp-Qt" "Install ProtonUp-Qt for managing Proton GE?" "sudo -u \"$REAL_USER\" yay -S --needed --noconfirm protonup-qt"
+    prompt_installation "ProtonUp-Qt" "Install ProtonUp-Qt for managing Proton GE?" "sudo -u \"$REAL_USER\" yay -S --needed  protonup-qt"
 
     echo -e "${GREEN}Gaming platform installation completed.${NC}"
     pause
@@ -501,22 +501,22 @@ install_gaming_platforms() {
 
 # Function to install PlayOnLinux
 install_playonlinux() {
-    prompt_installation "PlayOnLinux" "Would you like to install PlayOnLinux for managing Windows games?" "sudo -u \"$REAL_USER\" yay -S --needed --noconfirm playonlinux"
+    prompt_installation "PlayOnLinux" "Would you like to install PlayOnLinux for managing Windows games?" "sudo -u \"$REAL_USER\" yay -S --needed  playonlinux"
 }
 
 # Function to install GameMode
 install_gamemode() {
-    prompt_installation "GameMode" "Would you like to install GameMode for optimizing game performance?" "pacman -S --needed --noconfirm gamemode lib32-gamemode"
+    prompt_installation "GameMode" "Would you like to install GameMode for optimizing game performance?" "pacman -S --needed  gamemode lib32-gamemode"
 }
 
 # Function to install DXVK
 install_dxvk() {
-    prompt_installation "DXVK" "Would you like to install DXVK for improved Direct3D performance?" "sudo -u \"$REAL_USER\" yay -S --needed --noconfirm dxvk-bin"
+    prompt_installation "DXVK" "Would you like to install DXVK for improved Direct3D performance?" "sudo -u \"$REAL_USER\" yay -S --needed  dxvk-bin"
 }
 
 # Function to install MangoHud
 install_mangohud() {
-    prompt_installation "MangoHud" "Would you like to install MangoHud for performance monitoring?" "sudo -u \"$REAL_USER\" yay -S --needed --noconfirm mangohud lib32-mangohud"
+    prompt_installation "MangoHud" "Would you like to install MangoHud for performance monitoring?" "sudo -u \"$REAL_USER\" yay -S --needed  mangohud lib32-mangohud"
 
     if confirm_action "Would you like to configure MangoHud globally?"; then
         # Create default config directory
@@ -581,7 +581,7 @@ set_cpu_performance() {
             echo -e "${GREEN}CPU set to performance mode using powerprofilesctl.${NC}"
         else
             echo -e "${YELLOW}powerprofilesctl not found, installing power-profiles-daemon...${NC}"
-            pacman -S --needed --noconfirm power-profiles-daemon
+            pacman -S --needed  power-profiles-daemon
             systemctl enable --now power-profiles-daemon
             powerprofilesctl set performance
             echo -e "${GREEN}power-profiles-daemon installed and CPU set to performance mode.${NC}"
@@ -596,13 +596,13 @@ configure_wine() {
         echo -e "${CYAN}Configuring Wine for gaming...${NC}"
 
         # Install Wine and dependencies
-        pacman -S --needed --noconfirm wine-staging wine-gecko wine-mono winetricks
+        pacman -S --needed  wine-staging wine-gecko wine-mono winetricks
 
         # Install common Wine dependencies
-        pacman -S --needed --noconfirm lib32-gnutls lib32-libldap lib32-libgpg-error lib32-sqlite lib32-libpulse lib32-alsa-plugins
+        pacman -S --needed  lib32-gnutls lib32-libldap lib32-libgpg-error lib32-sqlite lib32-libpulse lib32-alsa-plugins
 
         # Install common dependencies for Windows games
-        pacman -S --needed --noconfirm giflib lib32-giflib libpng lib32-libpng libldap lib32-libldap gnutls lib32-gnutls mpg123 lib32-mpg123 openal lib32-openal v4l-utils lib32-v4l-utils libpulse lib32-libpulse alsa-plugins lib32-alsa-plugins alsa-lib lib32-alsa-lib libjpeg-turbo lib32-libjpeg-turbo libxcomposite lib32-libxcomposite libxinerama lib32-libxinerama ncurses lib32-ncurses opencl-icd-loader lib32-opencl-icd-loader libxslt lib32-libxslt libva lib32-libva gtk3 lib32-gtk3 gst-plugins-base-libs lib32-gst-plugins-base-libs vulkan-icd-loader lib32-vulkan-icd-loader cups samba dosbox
+        pacman -S --needed  giflib lib32-giflib libpng lib32-libpng libldap lib32-libldap gnutls lib32-gnutls mpg123 lib32-mpg123 openal lib32-openal v4l-utils lib32-v4l-utils libpulse lib32-libpulse alsa-plugins lib32-alsa-plugins alsa-lib lib32-alsa-lib libjpeg-turbo lib32-libjpeg-turbo libxcomposite lib32-libxcomposite libxinerama lib32-libxinerama ncurses lib32-ncurses opencl-icd-loader lib32-opencl-icd-loader libxslt lib32-libxslt libva lib32-libva gtk3 lib32-gtk3 gst-plugins-base-libs lib32-gst-plugins-base-libs vulkan-icd-loader lib32-vulkan-icd-loader cups samba dosbox
 
         # Create default Wine prefix if it doesn't exist
         if [ ! -d "$USER_HOME/.wine" ]; then
@@ -621,7 +621,7 @@ configure_gamemode() {
         echo -e "${CYAN}Configuring GameMode...${NC}"
 
         # Install GameMode if not already installed
-        pacman -S --needed --noconfirm gamemode lib32-gamemode
+        pacman -S --needed  gamemode lib32-gamemode
 
         # Create GameMode config directory if it doesn't exist
         sudo -u "$REAL_USER" mkdir -p "$USER_HOME/.config/gamemode"
@@ -725,25 +725,25 @@ install_gaming_tools() {
     # Distribution-specific tools
     case "$DISTRO" in
         "cachyos")
-            prompt_installation "CoreCtrl" "Install CoreCtrl for AMD GPU controls?" "sudo -u \"$REAL_USER\" yay -S --needed --noconfirm corectrl"
-            prompt_installation "GreenWithEnvy" "Install GreenWithEnvy for NVIDIA GPU controls?" "sudo -u \"$REAL_USER\" yay -S --needed --noconfirm gwe"
+            prompt_installation "CoreCtrl" "Install CoreCtrl for AMD GPU controls?" "sudo -u \"$REAL_USER\" yay -S --needed  corectrl"
+            prompt_installation "GreenWithEnvy" "Install GreenWithEnvy for NVIDIA GPU controls?" "sudo -u \"$REAL_USER\" yay -S --needed  gwe"
             ;;
         "garuda")
-            prompt_installation "Garuda Gamer" "Install Garuda Gamer utility?" "pacman -S --needed --noconfirm garuda-gamer"
+            prompt_installation "Garuda Gamer" "Install Garuda Gamer utility?" "pacman -S --needed  garuda-gamer"
             ;;
         "manjaro")
-            prompt_installation "Manjaro Gaming" "Install Manjaro Gaming utilities?" "pacman -S --needed --noconfirm manjaro-gaming-meta"
+            prompt_installation "Manjaro Gaming" "Install Manjaro Gaming utilities?" "pacman -S --needed  manjaro-gaming-meta"
             ;;
         *)
             # Default tools for all distros
-            prompt_installation "CoreCtrl" "Install CoreCtrl for AMD GPU controls?" "sudo -u \"$REAL_USER\" yay -S --needed --noconfirm corectrl"
-            prompt_installation "GreenWithEnvy" "Install GreenWithEnvy for NVIDIA GPU controls?" "sudo -u \"$REAL_USER\" yay -S --needed --noconfirm gwe"
+            prompt_installation "CoreCtrl" "Install CoreCtrl for AMD GPU controls?" "sudo -u \"$REAL_USER\" yay -S --needed  corectrl"
+            prompt_installation "GreenWithEnvy" "Install GreenWithEnvy for NVIDIA GPU controls?" "sudo -u \"$REAL_USER\" yay -S --needed  gwe"
             ;;
     esac
 
     # Common tools for all distros
-    prompt_installation "Lutris Scripts" "Install additional Lutris scripts for game installation?" "sudo -u \"$REAL_USER\" yay -S --needed --noconfirm lutris-wine-meta"
-    prompt_installation "Discord" "Install Discord?" "pacman -S --needed --noconfirm discord"
+    prompt_installation "Lutris Scripts" "Install additional Lutris scripts for game installation?" "sudo -u \"$REAL_USER\" yay -S --needed  lutris-wine-meta"
+    prompt_installation "Discord" "Install Discord?" "pacman -S --needed  discord"
 
     echo -e "${GREEN}Gaming tools installation completed.${NC}"
     pause
