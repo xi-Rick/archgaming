@@ -310,7 +310,7 @@ install_graphics_drivers() {
                     ;;
                 *)
                     # Default for most Arch-based distributions
-                    pacman -S --needed  nvidia nvidia-utils lib32-nvidia-utils
+                    pacman -S --needed  nvidia-dkms nvidia-utils lib32-nvidia-utils
                     ;;
             esac
 
