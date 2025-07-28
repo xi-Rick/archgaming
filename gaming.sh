@@ -306,7 +306,7 @@ install_aur_helper() {
     fi
     
     echo -e "${CYAN}Installing yay AUR helper...${NC}"
-    pacman -S --needed --noconfirm git base-devel
+    pacman -S --needed git base-devel
     sudo -u "$REAL_USER" git clone https://aur.archlinux.org/yay.git /tmp/yay
     cd /tmp/yay || exit
     sudo -u "$REAL_USER" makepkg -si --noconfirm
@@ -321,17 +321,17 @@ install_graphics_drivers() {
     
     if lspci | grep -i nvidia &> /dev/null; then
         echo -e "${YELLOW}Installing NVIDIA drivers...${NC}"
-        pacman -S --needed --noconfirm nvidia nvidia-utils lib32-nvidia-utils
+        pacman -S --needed nvidia nvidia-utils lib32-nvidia-utils
     fi
     
     if lspci | grep -i amd &> /dev/null; then
         echo -e "${YELLOW}Installing AMD drivers...${NC}"
-        pacman -S --needed --noconfirm mesa vulkan-radeon lib32-mesa lib32-vulkan-radeon
+        pacman -S --needed mesa vulkan-radeon lib32-mesa lib32-vulkan-radeon
     fi
     
     if lspci | grep -i intel &> /dev/null; then
         echo -e "${YELLOW}Installing Intel drivers...${NC}"
-        pacman -S --needed --noconfirm mesa vulkan-intel lib32-mesa lib32-vulkan-intel intel-media-driver
+        pacman -S --needed mesa vulkan-intel lib32-mesa lib32-vulkan-intel intel-media-driver
     fi
     
     echo -e "${GREEN}Graphics drivers installed.${NC}"
@@ -339,73 +339,73 @@ install_graphics_drivers() {
 
 install_gaming_platforms() {
     echo -e "${CYAN}Installing Gaming Platforms...${NC}"
-    pacman -S --needed --noconfirm steam lutris
+    pacman -S --needed steam lutris
     echo -e "${GREEN}Gaming platforms installed.${NC}"
 }
 
 install_wine_compatibility() {
     echo -e "${CYAN}Installing Wine & Compatibility Layers...${NC}"
-    pacman -S --needed --noconfirm wine-staging wine-gecko wine-mono winetricks
-    pacman -S --needed --noconfirm lib32-gnutls lib32-libldap lib32-libgpg-error lib32-sqlite lib32-libpulse lib32-alsa-plugins
+    pacman -S --needed wine-staging wine-gecko wine-mono winetricks
+    pacman -S --needed lib32-gnutls lib32-libldap lib32-libgpg-error lib32-sqlite lib32-libpulse lib32-alsa-plugins
     echo -e "${GREEN}Wine & compatibility layers installed.${NC}"
 }
 
 install_steam_enhanced() {
     echo -e "${CYAN}Installing Steam + Proton GE + SteamTinkerLaunch...${NC}"
-    pacman -S --needed --noconfirm steam
-    sudo -u "$REAL_USER" yay -S --needed --noconfirm protonup-qt steamtinkerlaunch
+    pacman -S --needed steam
+    sudo -u "$REAL_USER" yay -S --needed protonup-qt steamtinkerlaunch
     echo -e "${GREEN}Steam enhanced setup completed.${NC}"
 }
 
 install_lutris_enhanced() {
     echo -e "${CYAN}Installing Lutris + Wine-GE + DXVK...${NC}"
-    pacman -S --needed --noconfirm lutris
-    sudo -u "$REAL_USER" yay -S --needed --noconfirm dxvk-bin lutris-wine-meta
+    pacman -S --needed lutris
+    sudo -u "$REAL_USER" yay -S --needed dxvk-bin lutris-wine-meta
     echo -e "${GREEN}Lutris enhanced setup completed.${NC}"
 }
 
 install_heroic() {
     echo -e "${CYAN}Installing Heroic Games Launcher...${NC}"
-    sudo -u "$REAL_USER" yay -S --needed --noconfirm heroic-games-launcher-bin
+    sudo -u "$REAL_USER" yay -S --needed heroic-games-launcher-bin
     echo -e "${GREEN}Heroic Games Launcher installed.${NC}"
 }
 
 install_bottles() {
     echo -e "${CYAN}Installing Bottles...${NC}"
-    sudo -u "$REAL_USER" yay -S --needed --noconfirm bottles
+    sudo -u "$REAL_USER" yay -S --needed bottles
     echo -e "${GREEN}Bottles installed.${NC}"
 }
 
 install_retroarch() {
     echo -e "${CYAN}Installing RetroArch + Cores...${NC}"
-    pacman -S --needed --noconfirm retroarch retroarch-assets-xmb
-    sudo -u "$REAL_USER" yay -S --needed --noconfirm libretro-core-info
+    pacman -S --needed retroarch retroarch-assets-xmb
+    sudo -u "$REAL_USER" yay -S --needed libretro-core-info
     echo -e "${GREEN}RetroArch installed.${NC}"
 }
 
 install_console_emulators() {
     echo -e "${CYAN}Installing Console Emulators...${NC}"
-    pacman -S --needed --noconfirm dolphin-emu
-    sudo -u "$REAL_USER" yay -S --needed --noconfirm pcsx2 rpcs3-git
+    pacman -S --needed dolphin-emu
+    sudo -u "$REAL_USER" yay -S --needed pcsx2 rpcs3-git
     echo -e "${GREEN}Console emulators installed.${NC}"
 }
 
 install_handheld_emulators() {
     echo -e "${CYAN}Installing Handheld Emulators...${NC}"
-    sudo -u "$REAL_USER" yay -S --needed --noconfirm citra ryujinx-git
+    sudo -u "$REAL_USER" yay -S --needed citra ryujinx-git
     echo -e "${GREEN}Handheld emulators installed.${NC}"
 }
 
 install_performance_monitoring() {
     echo -e "${CYAN}Installing GameMode + MangoHud...${NC}"
-    pacman -S --needed --noconfirm gamemode lib32-gamemode
-    sudo -u "$REAL_USER" yay -S --needed --noconfirm mangohud lib32-mangohud
+    pacman -S --needed gamemode lib32-gamemode
+    sudo -u "$REAL_USER" yay -S --needed mangohud lib32-mangohud
     echo -e "${GREEN}Performance monitoring tools installed.${NC}"
 }
 
 install_performance_tuning() {
     echo -e "${CYAN}Installing Performance Tuning...${NC}"
-    pacman -S --needed --noconfirm power-profiles-daemon
+    pacman -S --needed power-profiles-daemon
     systemctl enable --now power-profiles-daemon
     
     # Set performance mode
@@ -429,11 +429,11 @@ install_gpu_tools() {
     echo -e "${CYAN}Installing GPU Control Tools...${NC}"
     
     if lspci | grep -i nvidia &> /dev/null; then
-        sudo -u "$REAL_USER" yay -S --needed --noconfirm gwe
+        sudo -u "$REAL_USER" yay -S --needed gwe
     fi
     
     if lspci | grep -i amd &> /dev/null; then
-        sudo -u "$REAL_USER" yay -S --needed --noconfirm corectrl
+        sudo -u "$REAL_USER" yay -S --needed corectrl
     fi
     
     echo -e "${GREEN}GPU control tools installed.${NC}"
@@ -441,22 +441,22 @@ install_gpu_tools() {
 
 install_mod_management() {
     echo -e "${CYAN}Installing Mod Management Tools...${NC}"
-    sudo -u "$REAL_USER" yay -S --needed --noconfirm steamtinkerlaunch
-    pacman -S --needed --noconfirm yad zenity xdotool xorg-xwininfo
+    sudo -u "$REAL_USER" yay -S --needed steamtinkerlaunch
+    pacman -S --needed yad zenity xdotool xorg-xwininfo
     echo -e "${GREEN}Mod management tools installed.${NC}"
 }
 
 install_vr_support() {
     echo -e "${CYAN}Installing VR Gaming Support...${NC}"
-    pacman -S --needed --noconfirm steam
-    sudo -u "$REAL_USER" yay -S --needed --noconfirm openvr openxr
+    pacman -S --needed steam
+    sudo -u "$REAL_USER" yay -S --needed openvr openxr
     echo -e "${GREEN}VR gaming support installed.${NC}"
 }
 
 install_gamedev_tools() {
     echo -e "${CYAN}Installing Game Development Tools...${NC}"
-    pacman -S --needed --noconfirm godot blender
-    sudo -u "$REAL_USER" yay -S --needed --noconfirm unity-editor
+    pacman -S --needed godot blender
+    sudo -u "$REAL_USER" yay -S --needed unity-editor
     echo -e "${GREEN}Game development tools installed.${NC}"
 }
 
