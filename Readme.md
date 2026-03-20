@@ -35,12 +35,12 @@ This isn't just another gaming setup script – it's your **personal gaming opti
 <table>
 <tr>
 <td align="center">
-  <img src="https://archlinux.org/static/logos/archlinux-logo-dark-90dpi.ebdee92a15b3.png" width="50"><br>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Arch_Linux_%22Crystal%22_icon.svg/960px-Arch_Linux_%22Crystal%22_icon.svg.png" width="50"><br>
   <strong>Arch Linux</strong><br>
   <em>Pure Arch experience</em>
 </td>
 <td align="center">
-  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/EndeavourOS_Logo.svg/800px-EndeavourOS_Logo.svg.png" width="50"><br>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/EndeavourOS_Logo.png" width="50"><br>
   <strong>EndeavourOS</strong><br>
   <em>User-friendly Arch</em>
 </td>
@@ -53,6 +53,11 @@ This isn't just another gaming setup script – it's your **personal gaming opti
   <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/CachyOS_Logo.svg/2048px-CachyOS_Logo.svg.png" width="50"><br>
   <strong>CachyOS</strong><br>
   <em>Lightning fast</em>
+</td>
+<td align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Garuda-purple.svg/960px-Garuda-purple.svg.png" width="50"><br>
+  <strong>Garuda Linux</strong><br>
+  <em>Performance gaming</em>
 </td>
 <td align="center">
   <img src="https://artixlinux.org/img/artix-logo.png" width="50"><br>
@@ -109,7 +114,7 @@ Select components to install (space-separated numbers):
 🕹️ Emulation Station
  8) RetroArch + Cores
  9) Console Emulators (Dolphin, PCSX2, RPCS3)
-10) Handheld Emulators (Citra, Ryujinx)
+10) Handheld Emulators (Azahar, Ryujinx)
 
 ⚡ Performance & Monitoring
 11) GameMode + MangoHud
@@ -231,7 +236,7 @@ rpcs3-git        # PlayStation 3
 duckstation      # PlayStation 1
 
 # Nintendo handhelds
-citra            # 3DS
+azahar           # 3DS (successor to Citra)
 ryujinx          # Switch alternative
 ```
 
