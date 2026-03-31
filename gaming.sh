@@ -329,10 +329,47 @@ check_root() {
 
 # Function to check internet connectivity
 check_internet() {
-    if ! ping -c 1 -W 5 archlinux.org &> /dev/null; then
-        echo -e "${RED}No internet connection detected. Please check your network.${NC}"
-        exit 1
+    # Improved internet check that works when a VPN blocks ICMP or redirects traffic.
+    # We'll try multiple lightweight checks: default route, DNS resolution, HTTP(S) HEAD, and ping fallback.
+
+    local score=0
+
+    # 1) Default route exists?
+    if ip route show default >/dev/null 2>&1; then
+        score=$((score+1))
     fi
+
+    # 2) DNS resolution for archlinux.org
+    if command -v getent >/dev/null 2>&1; then
+        if getent hosts archlinux.org >/dev/null 2>&1; then
+            score=$((score+1))
+        fi
+    fi
+
+    # 3) HTTP(S) HEAD request to a reliable site (tolerant to VPN setups)
+    if command -v curl >/dev/null 2>&1; then
+        if curl -s --head --max-time 5 https://archlinux.org >/dev/null 2>&1; then
+            score=$((score+2))
+        fi
+    elif command -v wget >/dev/null 2>&1; then
+        if wget -q --spider --timeout=5 https://archlinux.org >/dev/null 2>&1; then
+            score=$((score+2))
+        fi
+    fi
+
+    # 4) ICMP ping fallback to public IP (may fail on some VPNs)
+    if ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1; then
+        score=$((score+1))
+    fi
+
+    # Consider network available if any of the above checks passed (score > 0).
+    if [ "$score" -gt 0 ]; then
+        return 0
+    fi
+
+    echo -e "${RED}No internet connection detected (checks: default route, DNS, HTTP, ping).${NC}"
+    echo -e "${YELLOW}If you're on a VPN that blocks ICMP or specific hosts, ensure DNS/HTTP can reach external sites.${NC}"
+    exit 1
 }
 
 # Function to install AUR helper
@@ -490,7 +527,7 @@ install_console_emulators() {
         echo -e "${RED}Failed to install Dolphin Emulator${NC}"
         return 1
     fi
-    if ! sudo -u "$REAL_USER" "$AUR_HELPER" -S --needed pcsx2 rpcs3-git; then
+    if ! sudo -u "$REAL_USER" "$AUR_HELPER" -S --needed pcsx2 rpcs3-bin; then
         echo -e "${RED}Failed to install console emulators from AUR${NC}"
         return 1
     fi
@@ -499,7 +536,7 @@ install_console_emulators() {
 
 install_handheld_emulators() {
     echo -e "${CYAN}Installing Handheld Emulators...${NC}"
-    if ! sudo -u "$REAL_USER" "$AUR_HELPER" -S --needed azahar ryujinx-git; then
+    if ! sudo -u "$REAL_USER" "$AUR_HELPER" -S --needed azahar ryujinx-bin; then
         echo -e "${RED}Failed to install handheld emulators from AUR${NC}"
         return 1
     fi
