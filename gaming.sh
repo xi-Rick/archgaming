@@ -35,6 +35,10 @@ AUR_HELPER=""
 # Array to store user selections
 declare -a SELECTED_COMPONENTS=()
 
+# Gum TUI availability flag and per-distro accent color (ANSI 256-color index)
+GUM_AVAILABLE=false
+GUM_DISTRO_COLOR="212"
+
 # Function to display ASCII art based on detected distro
 display_ascii_art() {
     local distro=$1
@@ -137,29 +141,37 @@ detect_system() {
         if [[ "$DISTRO_ID" == "arch" ]]; then
             DISTRO="arch"
             DISTRO_STYLE="${LIGHT_BLUE}"
+            GUM_DISTRO_COLOR="39"
         elif [[ "$DISTRO_ID" == "cachyos" || "$PRETTY_NAME" == *"CachyOS"* ]]; then
             DISTRO="cachyos"
             DISTRO_STYLE="${CYAN}"
+            GUM_DISTRO_COLOR="51"
         elif [[ "$DISTRO_ID" == "endeavouros" || "$PRETTY_NAME" == *"EndeavourOS"* ]]; then
             DISTRO="endeavouros"
             DISTRO_STYLE="${PURPLE}"
+            GUM_DISTRO_COLOR="135"
         elif [[ "$DISTRO_ID" == "manjaro" || "$PRETTY_NAME" == *"Manjaro"* ]]; then
             DISTRO="manjaro"
             DISTRO_STYLE="${GREEN}"
+            GUM_DISTRO_COLOR="46"
         elif [[ "$DISTRO_ID" == "garuda" || "$PRETTY_NAME" == *"Garuda"* ]]; then
             DISTRO="garuda"
             DISTRO_STYLE="${RED}"
+            GUM_DISTRO_COLOR="196"
         elif [[ "$DISTRO_ID" == "artix" || "$PRETTY_NAME" == *"Artix"* ]]; then
             DISTRO="artix"
             DISTRO_STYLE="${MAGENTA}"
+            GUM_DISTRO_COLOR="201"
         else
             DISTRO="arch-based"
             DISTRO_STYLE="${LIGHT_CYAN}"
+            GUM_DISTRO_COLOR="51"
         fi
     else
         DISTRO="unknown"
         DISTRO_NAME="Unknown Distribution"
         DISTRO_STYLE="${NC}"
+        GUM_DISTRO_COLOR="212"
     fi
 
     # Get system information
@@ -327,43 +339,38 @@ check_root() {
     fi
 }
 
+# Silent connectivity helper — returns 0 if any check passes, 1 otherwise.
+# Used by both check_internet (basic mode) and run_preflight_checks (gum mode).
+_has_internet() {
+    local score=0
+
+    # 1) Default route exists?
+    ip route show default >/dev/null 2>&1 && score=$((score+1))
+
+    # 2) DNS resolution for archlinux.org
+    if command -v getent >/dev/null 2>&1; then
+        getent hosts archlinux.org >/dev/null 2>&1 && score=$((score+1))
+    fi
+
+    # 3) HTTP(S) HEAD request to a reliable site (tolerant to VPN setups)
+    if command -v curl >/dev/null 2>&1; then
+        curl -s --head --max-time 5 https://archlinux.org >/dev/null 2>&1 && score=$((score+2))
+    elif command -v wget >/dev/null 2>&1; then
+        wget -q --spider --timeout=5 https://archlinux.org >/dev/null 2>&1 && score=$((score+2))
+    fi
+
+    # 4) ICMP ping fallback to public IP (may fail on some VPNs)
+    ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 && score=$((score+1))
+
+    [ "$score" -gt 0 ]
+}
+
 # Function to check internet connectivity
 check_internet() {
     # Improved internet check that works when a VPN blocks ICMP or redirects traffic.
     # We'll try multiple lightweight checks: default route, DNS resolution, HTTP(S) HEAD, and ping fallback.
 
-    local score=0
-
-    # 1) Default route exists?
-    if ip route show default >/dev/null 2>&1; then
-        score=$((score+1))
-    fi
-
-    # 2) DNS resolution for archlinux.org
-    if command -v getent >/dev/null 2>&1; then
-        if getent hosts archlinux.org >/dev/null 2>&1; then
-            score=$((score+1))
-        fi
-    fi
-
-    # 3) HTTP(S) HEAD request to a reliable site (tolerant to VPN setups)
-    if command -v curl >/dev/null 2>&1; then
-        if curl -s --head --max-time 5 https://archlinux.org >/dev/null 2>&1; then
-            score=$((score+2))
-        fi
-    elif command -v wget >/dev/null 2>&1; then
-        if wget -q --spider --timeout=5 https://archlinux.org >/dev/null 2>&1; then
-            score=$((score+2))
-        fi
-    fi
-
-    # 4) ICMP ping fallback to public IP (may fail on some VPNs)
-    if ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1; then
-        score=$((score+1))
-    fi
-
-    # Consider network available if any of the above checks passed (score > 0).
-    if [ "$score" -gt 0 ]; then
+    if _has_internet; then
         return 0
     fi
 
@@ -410,6 +417,269 @@ install_aur_helper() {
     echo -e "${RED}Failed to install any AUR helper (tried yay and paru). Cannot continue.${NC}"
     rm -rf /tmp/paru
     exit 1
+}
+
+# =================== GUM TUI FUNCTIONS ===================
+
+# Auto-install gum if not present (gum lives in the Arch 'extra' repository)
+ensure_gum() {
+    if command -v gum &>/dev/null; then
+        GUM_AVAILABLE=true
+        return 0
+    fi
+
+    echo -e "${CYAN}gum not found — installing TUI framework...${NC}"
+
+    # Try pacman first (gum is in the Arch extra repository)
+    if pacman -S --needed --noconfirm gum 2>/dev/null; then
+        GUM_AVAILABLE=true
+        echo -e "${GREEN}gum installed successfully.${NC}"
+        return 0
+    fi
+
+    # Fallback: AUR helper (resolve it if not yet set)
+    local helper="${AUR_HELPER}"
+    if [ -z "$helper" ]; then
+        command -v yay  &>/dev/null && helper="yay"
+        command -v paru &>/dev/null && helper="paru"
+    fi
+
+    if [ -n "$helper" ] && sudo -u "$REAL_USER" "$helper" -S --needed --noconfirm gum 2>/dev/null; then
+        GUM_AVAILABLE=true
+        echo -e "${GREEN}gum installed via $helper.${NC}"
+        return 0
+    fi
+
+    echo -e "${YELLOW}Could not install gum. Falling back to basic terminal UI.${NC}"
+    GUM_AVAILABLE=false
+    return 1
+}
+
+# Helper: print a gum-styled section header (or plain colour fallback)
+gum_section() {
+    local title="$1"
+    if [ "$GUM_AVAILABLE" = true ]; then
+        echo
+        gum style \
+            --border normal \
+            --border-foreground "$GUM_DISTRO_COLOR" \
+            --padding "0 2" \
+            --bold \
+            "$title"
+        echo
+    else
+        echo -e "${DISTRO_STYLE}${BOLD}${title}${NC}"
+    fi
+}
+
+# Preflight checks shown with gum styling
+run_preflight_checks() {
+    clear
+    detect_system
+    display_ascii_art "$DISTRO"
+
+    gum style \
+        --border rounded \
+        --border-foreground 214 \
+        --padding "0 2" \
+        --margin "0 1" \
+        --bold \
+        "  Preflight Checks"
+    echo
+
+    local all_ok=true
+
+    # Root check
+    if [ "$EUID" -eq 0 ]; then
+        gum style "$(gum style --foreground 46 '  ✓') Running as root"
+    else
+        gum style "$(gum style --foreground 196 '  ✗') Not running as root — please re-run with: sudo -E ./gaming.sh"
+        all_ok=false
+    fi
+
+    # Internet connectivity — reuse shared _has_internet() helper
+    gum spin --spinner dot --title "  Checking internet connectivity..." -- sleep 0
+    if _has_internet; then
+        gum style "$(gum style --foreground 46 '  ✓') Internet connectivity"
+    else
+        gum style "$(gum style --foreground 196 '  ✗') No internet connection detected"
+        all_ok=false
+    fi
+
+    # Disk space (warn below 10 GB free on /)
+    local free_gb
+    free_gb=$(df / --output=avail -BG 2>/dev/null | tail -1 | tr -d 'G' | xargs)
+    if [ "${free_gb:-0}" -ge 10 ]; then
+        gum style "$(gum style --foreground 46 '  ✓') Disk space: ${free_gb} GB available"
+    else
+        gum style "$(gum style --foreground 214 '  ⚠') Disk space low: ${free_gb:-?} GB available (10 GB recommended)"
+    fi
+
+    # pacman sanity-check
+    if command -v pacman &>/dev/null; then
+        gum style "$(gum style --foreground 46 '  ✓') Package manager: pacman"
+    else
+        gum style "$(gum style --foreground 196 '  ✗') pacman not found — is this an Arch-based system?"
+        all_ok=false
+    fi
+
+    echo
+
+    if [ "$all_ok" = false ]; then
+        gum style \
+            --border rounded \
+            --border-foreground 196 \
+            --padding "0 2" --margin "0 1" \
+            --foreground 196 --bold \
+            "  Preflight checks failed. Resolve the issues above and re-run."
+        exit 1
+    fi
+
+    gum style --foreground 46 --bold "  All checks passed ✓"
+    echo
+    sleep 1
+}
+
+# Interactive multi-select menu built with gum
+display_menu_gum() {
+    clear
+    detect_system
+    display_ascii_art "$DISTRO"
+
+    # System info panel
+    gum style \
+        --border rounded \
+        --border-foreground "$GUM_DISTRO_COLOR" \
+        --padding "0 2" --margin "0 1" \
+        "$(gum style --foreground "$GUM_DISTRO_COLOR" --bold 'Distribution:') $DISTRO_NAME   $(gum style --foreground "$GUM_DISTRO_COLOR" --bold 'GPU:') $GPU_INFO
+$(gum style --foreground "$GUM_DISTRO_COLOR" --bold 'Kernel:')      $KERNEL_INFO
+$(gum style --foreground "$GUM_DISTRO_COLOR" --bold 'CPU:')         $CPU_INFO"
+
+    echo
+    gum style \
+        --border double \
+        --border-foreground 212 \
+        --align center \
+        --width 64 \
+        --bold \
+        "🎮  Gaming Installation Menu"
+    echo
+
+    local CHOSEN
+    CHOSEN=$(gum choose --no-limit \
+        --header "  ↑/↓ navigate  •  x/space select  •  enter confirm  •  ctrl+c cancel" \
+        --cursor.foreground 212 \
+        --selected.foreground 212 \
+        --selected-prefix "◉ " \
+        --unselected-prefix "○ " \
+        "🎯  [Core Gaming]     Graphics Drivers (Auto-detected: $(echo "$GPU_INFO" | awk '{print $1}'))" \
+        "🎯  [Core Gaming]     Gaming Platforms (Steam, Lutris, Heroic)" \
+        "🎯  [Core Gaming]     Wine & Compatibility Layers" \
+        "🎮  [Launchers]       Steam + Proton GE + SteamTinkerLaunch" \
+        "🎮  [Launchers]       Lutris + Wine-GE + DXVK" \
+        "🎮  [Launchers]       Heroic Games Launcher (Epic/GOG)" \
+        "🎮  [Launchers]       Bottles (Wine prefix manager)" \
+        "🕹️   [Emulation]      RetroArch + Cores" \
+        "🕹️   [Emulation]      Console Emulators (Dolphin, PCSX2, RPCS3)" \
+        "🕹️   [Emulation]      Handheld Emulators (Azahar, Ryujinx)" \
+        "⚡  [Performance]    GameMode + MangoHud" \
+        "⚡  [Performance]    Performance Tuning (CPU Governor, I/O Scheduler)" \
+        "⚡  [Performance]    GPU Control Tools (CoreCtrl/GreenWithEnvy)" \
+        "🔧  [Advanced]       Mod Management (Vortex via SteamTinkerLaunch)" \
+        "🔧  [Advanced]       VR Gaming Support (SteamVR, OpenXR)" \
+        "🔧  [Advanced]       Game Development Tools" \
+        "🌟  [Quick Setup]    Essential Gaming  (Drivers + Platforms + Wine + Steam + GameMode)" \
+        "🌟  [Quick Setup]    Complete Gaming Setup (All components)" \
+        "🌟  [Quick Setup]    Competitive Gaming (Performance focused)" \
+        "🌟  [Quick Setup]    Retro Gaming Paradise (Emulation focused)" \
+        "❌  Exit")
+
+    local gum_exit=$?
+    # ctrl+c or escape
+    if [ "$gum_exit" -ne 0 ]; then
+        return "$gum_exit"
+    fi
+
+    if [ -z "$CHOSEN" ]; then
+        return 1
+    fi
+
+    SELECTED_COMPONENTS=()
+
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        case "$line" in
+            *"[Core Gaming]"*"Graphics Drivers"*)      SELECTED_COMPONENTS+=(1)  ;;
+            *"[Core Gaming]"*"Gaming Platforms"*)      SELECTED_COMPONENTS+=(2)  ;;
+            *"[Core Gaming]"*"Wine"*)                  SELECTED_COMPONENTS+=(3)  ;;
+            *"[Launchers]"*"Steam + Proton"*)          SELECTED_COMPONENTS+=(4)  ;;
+            *"[Launchers]"*"Lutris"*)                  SELECTED_COMPONENTS+=(5)  ;;
+            *"[Launchers]"*"Heroic"*)                  SELECTED_COMPONENTS+=(6)  ;;
+            *"[Launchers]"*"Bottles"*)                 SELECTED_COMPONENTS+=(7)  ;;
+            *"[Emulation]"*"RetroArch"*)               SELECTED_COMPONENTS+=(8)  ;;
+            *"[Emulation]"*"Console Emulators"*)       SELECTED_COMPONENTS+=(9)  ;;
+            *"[Emulation]"*"Handheld Emulators"*)      SELECTED_COMPONENTS+=(10) ;;
+            *"[Performance]"*"GameMode"*)              SELECTED_COMPONENTS+=(11) ;;
+            *"[Performance]"*"Performance Tuning"*)    SELECTED_COMPONENTS+=(12) ;;
+            *"[Performance]"*"GPU Control"*)           SELECTED_COMPONENTS+=(13) ;;
+            *"[Advanced]"*"Mod Management"*)           SELECTED_COMPONENTS+=(14) ;;
+            *"[Advanced]"*"VR Gaming"*)                SELECTED_COMPONENTS+=(15) ;;
+            *"[Advanced]"*"Game Development"*)         SELECTED_COMPONENTS+=(16) ;;
+            *"[Quick Setup]"*"Essential Gaming"*)      SELECTED_COMPONENTS+=(1 2 3 4 11)                           ;;
+            *"[Quick Setup]"*"Complete Gaming"*)       SELECTED_COMPONENTS+=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16) ;;
+            *"[Quick Setup]"*"Competitive Gaming"*)    SELECTED_COMPONENTS+=(1 4 11 12 13)                         ;;
+            *"[Quick Setup]"*"Retro Gaming"*)          SELECTED_COMPONENTS+=(8 9 10 11)                            ;;
+            *"❌"*"Exit"*)                             exit 0 ;;
+        esac
+    done <<< "$CHOSEN"
+
+    # Remove duplicates, preserve numeric sort order
+    mapfile -t SELECTED_COMPONENTS < <(printf "%s\n" "${SELECTED_COMPONENTS[@]}" | sort -un)
+
+    # Option 2 delegates to 4, 5, 6 — avoid double-install
+    if printf '%s\n' "${SELECTED_COMPONENTS[@]}" | grep -qx '2'; then
+        mapfile -t SELECTED_COMPONENTS < <(printf '%s\n' "${SELECTED_COMPONENTS[@]}" | grep -vxE '4|5|6')
+    fi
+}
+
+# Styled confirmation dialog using gum
+confirm_selections_gum() {
+    local list=""
+    for component in "${SELECTED_COMPONENTS[@]}"; do
+        case $component in
+            1)  list+="$(gum style --foreground 46 '  ✓') Graphics Drivers\n" ;;
+            2)  list+="$(gum style --foreground 46 '  ✓') Gaming Platforms\n" ;;
+            3)  list+="$(gum style --foreground 46 '  ✓') Wine & Compatibility Layers\n" ;;
+            4)  list+="$(gum style --foreground 46 '  ✓') Steam + Proton GE + SteamTinkerLaunch\n" ;;
+            5)  list+="$(gum style --foreground 46 '  ✓') Lutris + Wine-GE + DXVK\n" ;;
+            6)  list+="$(gum style --foreground 46 '  ✓') Heroic Games Launcher\n" ;;
+            7)  list+="$(gum style --foreground 46 '  ✓') Bottles\n" ;;
+            8)  list+="$(gum style --foreground 46 '  ✓') RetroArch + Cores\n" ;;
+            9)  list+="$(gum style --foreground 46 '  ✓') Console Emulators\n" ;;
+            10) list+="$(gum style --foreground 46 '  ✓') Handheld Emulators\n" ;;
+            11) list+="$(gum style --foreground 46 '  ✓') GameMode + MangoHud\n" ;;
+            12) list+="$(gum style --foreground 46 '  ✓') Performance Tuning\n" ;;
+            13) list+="$(gum style --foreground 46 '  ✓') GPU Control Tools\n" ;;
+            14) list+="$(gum style --foreground 46 '  ✓') Mod Management\n" ;;
+            15) list+="$(gum style --foreground 46 '  ✓') VR Gaming Support\n" ;;
+            16) list+="$(gum style --foreground 46 '  ✓') Game Development Tools\n" ;;
+        esac
+    done
+
+    echo
+    gum style \
+        --border rounded \
+        --border-foreground 46 \
+        --padding "1 2" --margin "0 1" \
+        "$(gum style --foreground 46 --bold 'Selected Components:')
+$(echo -e "$list")"
+    echo
+
+    if ! gum confirm --affirmative "Install" --negative "Cancel" "Proceed with installation?"; then
+        gum style --foreground 196 "  Installation cancelled."
+        return 1
+    fi
+    return 0
 }
 
 # Installation functions for each component
@@ -813,8 +1083,7 @@ EOF
 execute_installations() {
     local failed=0
 
-    echo -e "${DISTRO_STYLE}${BOLD}Starting Installation Process...${NC}"
-    echo
+    gum_section "⚡ Starting Installation Process..."
     
     # Install AUR helper first if needed
     install_aur_helper
@@ -843,9 +1112,17 @@ execute_installations() {
     done
     
     if [ "$failed" -gt 0 ]; then
-        echo -e "${RED}${BOLD}$failed component(s) failed to install. Check the errors above.${NC}"
+        if [ "$GUM_AVAILABLE" = true ]; then
+            gum style --foreground 196 --bold "  $failed component(s) failed to install. Check the errors above."
+        else
+            echo -e "${RED}${BOLD}$failed component(s) failed to install. Check the errors above.${NC}"
+        fi
     else
-        echo -e "${GREEN}${BOLD}Installation completed successfully!${NC}"
+        if [ "$GUM_AVAILABLE" = true ]; then
+            gum style --foreground 46 --bold "  Installation completed successfully! 🎮"
+        else
+            echo -e "${GREEN}${BOLD}Installation completed successfully!${NC}"
+        fi
     fi
     echo -e "${YELLOW}You may need to reboot for all changes to take effect.${NC}"
     echo
@@ -860,42 +1137,73 @@ trap 'rm -rf /tmp/yay /tmp/paru 2>/dev/null' INT TERM EXIT
 
 main() {
     check_root
-    check_internet
-    
-    while true; do
-        display_menu
-        read -r user_input
-        
-        # Handle exit
-        if [[ "$user_input" == "0" ]]; then
-            echo -e "${YELLOW}Exiting gaming setup. Happy gaming! 🎮${NC}"
-            exit 0
-        fi
-        
-        # Parse and validate input
-        if [[ -z "$user_input" ]]; then
-            echo -e "${RED}No selection made. Please try again.${NC}"
-            sleep 2
-            continue
-        fi
-        
-        parse_user_input "$user_input"
-        
-        if [[ ${#SELECTED_COMPONENTS[@]} -eq 0 ]]; then
-            echo -e "${RED}Invalid selection. Please enter valid component numbers.${NC}"
-            sleep 2
-            continue
-        fi
-        
-        # Confirm selections and proceed
-        if confirm_selections; then
-            execute_installations
-            
-            echo
-            echo -e "${YELLOW}Press Enter to return to menu or Ctrl+C to exit...${NC}"
-            read -r
-        fi
-    done
+    ensure_gum
+
+    if [ "$GUM_AVAILABLE" = true ]; then
+        run_preflight_checks
+
+        while true; do
+            display_menu_gum
+            local menu_exit=$?
+
+            # Ctrl+C / escape returns 130; any other non-zero means gum itself failed
+            if [ "$menu_exit" -eq 130 ]; then
+                gum style --foreground 212 --bold "  Happy gaming! 🎮"
+                exit 0
+            elif [ "$menu_exit" -ne 0 ]; then
+                # display_menu_gum signalled an empty selection (return 1) — retry
+                gum style --foreground 214 "  No selection made. Please choose at least one component."
+                sleep 1
+                continue
+            fi
+
+            if confirm_selections_gum; then
+                execute_installations
+                echo
+                gum confirm \
+                    --affirmative "Return to Menu" \
+                    --negative "Exit" \
+                    "What would you like to do next?" && continue || break
+            fi
+        done
+
+        gum style --foreground 212 --bold "  Happy gaming! 🎮"
+    else
+        # ── Fallback: original basic terminal mode ──────────────────────────
+        check_internet
+
+        while true; do
+            display_menu
+            read -r user_input
+
+            if [[ "$user_input" == "0" ]]; then
+                echo -e "${YELLOW}Exiting gaming setup. Happy gaming! 🎮${NC}"
+                exit 0
+            fi
+
+            if [[ -z "$user_input" ]]; then
+                echo -e "${RED}No selection made. Please try again.${NC}"
+                sleep 2
+                continue
+            fi
+
+            parse_user_input "$user_input"
+
+            if [[ ${#SELECTED_COMPONENTS[@]} -eq 0 ]]; then
+                echo -e "${RED}Invalid selection. Please enter valid component numbers.${NC}"
+                sleep 2
+                continue
+            fi
+
+            if confirm_selections; then
+                execute_installations
+
+                echo
+                echo -e "${YELLOW}Press Enter to return to menu or Ctrl+C to exit...${NC}"
+                read -r
+            fi
+        done
+    fi
 }
 
 # Run the main function
